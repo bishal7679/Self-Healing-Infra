@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: self-healing
+  namespace: default
+  labels:
+    app: self-healing
+    component: analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: self-healing
+  template:
+    metadata:
+      labels:
+        app: self-healing
+        component: analyzer
+    spec:
+      serviceAccountName: self-healing-sa
+      containers:
+        - name: analyzer
+          image: ghcr.io/bishal7679/self-healing-infra:latest  # Update with your image
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          env:
+            - name: JULES_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: self-healing-secrets
+                  key: jules-api-key
+            - name: JULES_SOURCE
+              value: "sources/github/bishal7679/Self-Healing-Infra"  # Update with your Jules source
+            - name: JULES_BRANCH
+              value: "main"
+          livenessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/healthy
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/healthy
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      restartPolicy: Always

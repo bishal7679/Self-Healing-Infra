@@ -1,0 +1,33 @@
+# Demo app that intentionally crashes with OOMKilled
+# Used to test the self-healing system
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: default
+  labels:
+    app: demo-app
+    purpose: self-healing-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+        purpose: self-healing-test
+    spec:
+      containers:
+        - name: demo-app
+          image: polinux/stress
+          # Tries to allocate 200MB but limit is 64Mi → OOMKilled
+          args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
+          resources:
+            limits:
+              memory: "64Mi"    # Intentionally low → triggers OOM
+              cpu: "250m"
+            requests:
+              memory: "32Mi"
+              cpu: "100m"
