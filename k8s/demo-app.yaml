@@ -26,8 +26,8 @@ spec:
           args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
           resources:
             limits:
-              memory: "64Mi"    # Intentionally low → triggers OOM
+              memory: "512Mi"   # Increased to prevent OOMKilled
               cpu: "100m"
             requests:
-              memory: "32Mi"
+              memory: "256Mi"
               cpu: "10m"
