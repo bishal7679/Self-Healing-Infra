@@ -26,8 +26,8 @@ spec:
           args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
           resources:
             limits:
-              memory: "1024Mi"
+              memory: "2048Mi"
               cpu: "250m"
             requests:
-              memory: "512Mi"
+              memory: "1024Mi"
               cpu: "100m"
