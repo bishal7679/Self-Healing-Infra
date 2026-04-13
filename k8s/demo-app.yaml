@@ -21,13 +21,13 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: progrium/stress
-          # Tries to allocate 200MB but limit is 64Mi → OOMKilled
+          image: polinux/stress
+          # Allocates 200MB, memory limit is set to 512Mi
           args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
           resources:
             limits:
-              memory: "1024Mi"
+              memory: "512Mi"
               cpu: "250m"
             requests:
-              memory: "512Mi"
+              memory: "256Mi"
               cpu: "100m"
