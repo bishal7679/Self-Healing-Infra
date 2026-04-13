@@ -22,12 +22,12 @@ spec:
       containers:
         - name: demo-app
           image: progrium/stress
-          # Tries to allocate 200MB but limit is 64Mi → OOMKilled
+          # Tries to allocate 200MB but limit is 512Mi → OOMKilled
           args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
           resources:
             limits:
-              memory: "512Mi"
+              memory: "1024Mi"
               cpu: "250m"
             requests:
-              memory: "256Mi"
+              memory: "512Mi"
               cpu: "100m"
