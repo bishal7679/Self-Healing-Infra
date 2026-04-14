@@ -19,7 +19,7 @@ spec:
       containers:
         - name: demo-app
           # Typo in image tag — this version doesn't exist
-          image: nginx:1.29-alpne
+          image: nginx:1.29-alpine
           resources:
             limits:
               memory: "64Mi"
