@@ -21,8 +21,19 @@ import (
 var (
 	recentAlerts = make(map[string]time.Time)
 	alertMu      sync.Mutex
-	dedupWindow  = 10 * time.Minute
+	dedupWindow  = 30 * time.Minute
 )
+
+// ignoredNamespaces are system namespaces we should never try to fix.
+var ignoredNamespaces = map[string]bool{
+	"kube-system":     true,
+	"kube-public":     true,
+	"kube-node-lease": true,
+	"argocd":          true,
+	"ingress-nginx":   true,
+	"cert-manager":    true,
+	"monitoring":      true,
+}
 
 func isDuplicate(key string) bool {
 	alertMu.Lock()
@@ -95,6 +106,18 @@ func watchLoop(ctx context.Context, clientset *kubernetes.Clientset, ch chan<- t
 }
 
 func checkPod(pod *v1.Pod, ch chan<- types.Anomaly) {
+	// Skip system namespaces — only watch user workloads
+	if ignoredNamespaces[pod.Namespace] {
+		return
+	}
+
+	// Skip pods owned by the self-healing system itself
+	for _, owner := range pod.OwnerReferences {
+		if owner.Name == "self-healing" {
+			return
+		}
+	}
+
 	for _, c := range pod.Status.ContainerStatuses {
 		// CrashLoopBackOff detection
 		if c.State.Waiting != nil && c.State.Waiting.Reason == "CrashLoopBackOff" {

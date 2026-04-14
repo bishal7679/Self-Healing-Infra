@@ -89,16 +89,27 @@ Restarts:  %d
 Logs:
 %s
 
-Please fix this issue by modifying the appropriate Kubernetes deployment YAML file in the k8s/ directory.
+IMPORTANT CONSTRAINTS:
+- The cluster runs on a single node with only 1 CPU total
+- CPU requests across all pods must stay under 1000m total
+- Keep CPU requests as low as possible (5m-10m) and CPU limits under 100m
+
+Please fix this issue by modifying ONLY the file k8s/demo-app.yaml.
 
 If the issue is OOMKilled:
-- Increase the memory limits in the deployment manifest (e.g. from 64Mi to 512Mi)
-- Also increase memory requests proportionally
+- Increase the memory limits (e.g. from 64Mi to 512Mi)
+- Increase memory requests proportionally
+- Keep CPU requests at 5m and CPU limits at 50m (node is CPU constrained)
 
 If the issue is CrashLoopBackOff:
-- Analyze the logs and fix the root cause (resource limits, config, image issues)
+- Analyze the logs and fix the root cause
+- Keep CPU requests at 5m and CPU limits at 50m
 
-Only modify the YAML files in the k8s/ directory. Do not modify Go source code.`,
+Rules:
+- ONLY modify k8s/demo-app.yaml
+- Do NOT modify any Go source code
+- Do NOT create new files
+- Do NOT modify k8s/deployment.yaml or k8s/rbac.yaml`,
 		a.Service, a.Namespace, a.Issue, a.Container, a.RestartCnt, a.Logs)
 
 	title := fmt.Sprintf("Auto-fix: %s in %s/%s", a.Issue, a.Namespace, a.Service)
