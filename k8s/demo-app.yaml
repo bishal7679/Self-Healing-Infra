@@ -21,13 +21,11 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: progrium/stress
-          # stress tool: allocates 200MB which is well within 512Mi limit
-          args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
+          image: nginx:1.27-alpine
           resources:
             limits:
-              memory: "512Mi"
+              memory: "64Mi"
               cpu: "50m"
             requests:
-              memory: "256Mi"
+              memory: "32Mi"
               cpu: "5m"
