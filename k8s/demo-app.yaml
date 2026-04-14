@@ -19,8 +19,6 @@ spec:
       containers:
         - name: demo-app
           image: nginx:1.27-alpine
-          # Broken: points to a config file that doesn't exist → crash
-          command: ["nginx", "-c", "/etc/nginx/broken.conf", "-g", "daemon off;"]
           resources:
             limits:
               memory: "64Mi"
