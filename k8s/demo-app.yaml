@@ -21,13 +21,13 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: progrium/stress
+          image: polinux/stress
           # stress tool: allocates 200MB which exceeds 64Mi limit → OOMKilled
-          args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
+          args: ["stress", "--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
           resources:
             limits:
-              memory: "64Mi"
+              memory: "512Mi"
               cpu: "50m"
             requests:
-              memory: "32Mi"
+              memory: "256Mi"
               cpu: "5m"
