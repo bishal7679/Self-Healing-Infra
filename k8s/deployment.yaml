@@ -20,7 +20,7 @@ spec:
       serviceAccountName: self-healing-sa
       containers:
         - name: analyzer
-          image: ghcr.io/bishal7679/self-healing-infra:v2
+          image: ghcr.io/bishal7679/self-healing-infra:v3
           imagePullPolicy: Never
           resources:
             requests:
@@ -36,9 +36,18 @@ spec:
                   name: self-healing-secrets
                   key: jules-api-key
             - name: JULES_SOURCE
-              value: "sources/github/bishal7679/Self-Healing-Infra"  # Update with your Jules source
+              value: "sources/github/bishal7679/Self-Healing-Infra"
             - name: JULES_BRANCH
               value: "main"
+            # Dynamic — set which namespaces to watch (comma-separated)
+            - name: WATCH_NAMESPACES
+              value: "default"
+            # Dedup window in minutes (prevents duplicate PRs)
+            - name: DEDUP_MINUTES
+              value: "30"
+            # Base directory in repo where K8s manifests live
+            - name: MANIFEST_DIR
+              value: "k8s"
           livenessProbe:
             exec:
               command:

@@ -1,5 +1,4 @@
-# Demo app that intentionally crashes with OOMKilled
-# Used to test the self-healing system
+# Demo app that intentionally crashes due to a bad config
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +6,6 @@ metadata:
   namespace: default
   labels:
     app: demo-app
-    purpose: self-healing-test
 spec:
   replicas: 1
   selector:
@@ -17,17 +15,18 @@ spec:
     metadata:
       labels:
         app: demo-app
-        purpose: self-healing-test
     spec:
       containers:
         - name: demo-app
-          image: progrium/stress
-          # stress tool: allocates 200MB which is well within 512Mi limit
-          args: ["--vm", "1", "--vm-bytes", "200M", "--vm-hang", "1"]
+          image: nginx:1.27-alpine
+          # Broken: points to a config file that doesn't exist → crash
+          command: ["nginx", "-c", "/etc/nginx/broken.conf", "-g", "daemon off;"]
           resources:
             limits:
-              memory: "512Mi"
+              memory: "64Mi"
               cpu: "50m"
             requests:
-              memory: "256Mi"
+              memory: "32Mi"
               cpu: "5m"
+          ports:
+            - containerPort: 80

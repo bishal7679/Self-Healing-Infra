@@ -16,8 +16,10 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	fmt.Println("🚀 Self-Healing Infra Running...")
+
+	fmt.Println("🚀 Self-Healing Infrastructure v3")
 	fmt.Println("   Powered by Google Jules AI Agent")
+	fmt.Printf("   Namespaces: %s\n", os.Getenv("WATCH_NAMESPACES"))
 
 	// Graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -27,55 +29,51 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-sigCh
-		log.Printf("🛑 Received signal %s, shutting down...", sig)
+		log.Printf("🛑 Received %s, shutting down...", sig)
 		cancel()
 	}()
 
-	// Channel for anomalies
-	ch := make(chan types.Anomaly, 10)
-
-	// Start Kubernetes pod watcher
-	go k8s.WatchPods(ctx, ch)
-
-	// Start log fetcher (enriches anomalies with real logs)
-	logFetcher, err := logfetcher.NewFetcher()
+	// Enricher — fetches logs, events, pod spec
+	enricher, err := logfetcher.NewFetcher()
 	if err != nil {
-		log.Printf("⚠️ Log fetcher unavailable (will use basic logs): %v", err)
+		log.Printf("⚠️ Enricher unavailable (will run with basic diagnostics): %v", err)
 	}
 
-	// Main event loop
+	// Anomaly channel
+	ch := make(chan types.Anomaly, 20)
+
+	// Start watcher (reads WATCH_NAMESPACES from env)
+	go k8s.WatchPods(ctx, ch)
+
+	// Write health marker for liveness probe
+	os.WriteFile("/tmp/healthy", []byte("ok"), 0644)
+
+	// Main event loop — one goroutine per anomaly
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Println("🛑 Shutting down gracefully...")
 			return
-
 		case anomaly := <-ch:
-			go handleAnomaly(anomaly, logFetcher)
+			go handleAnomaly(anomaly, enricher)
 		}
 	}
 }
 
-func handleAnomaly(anomaly types.Anomaly, logFetcher *logfetcher.Fetcher) {
-	log.Printf("⚠️ Detected issue: [%s] %s/%s — %s",
-		anomaly.Issue, anomaly.Namespace, anomaly.Service, anomaly.Logs)
+func handleAnomaly(a types.Anomaly, enricher *logfetcher.Fetcher) {
+	log.Printf("⚠️ [%s] %s/%s — %s (owner: %s/%s, restarts: %d)",
+		a.Issue, a.Namespace, a.PodName, a.Reason, a.OwnerKind, a.OwnerName, a.RestartCnt)
 
-	// Enrich with real container logs if available
-	if logFetcher != nil {
-		realLogs, err := logFetcher.GetLogs(anomaly.Namespace, anomaly.PodName, anomaly.Container)
-		if err == nil && realLogs != "" {
-			anomaly.Logs = realLogs
-			log.Printf("📋 Fetched %d bytes of real container logs", len(realLogs))
-		}
+	// Enrich with full diagnostics
+	if enricher != nil {
+		enricher.Enrich(&a)
+		log.Printf("📋 Enriched: logs=%d bytes, events=%d bytes, spec=%d bytes, manifest=%s",
+			len(a.ContainerLogs), len(a.PodEvents), len(a.PodSpec), a.ManifestPath)
 	}
 
-	// Call Jules — Jules will autonomously:
-	// 1. Clone the repo
-	// 2. Analyze the issue
-	// 3. Fix the YAML
-	// 4. Create a PR
-	log.Println("🤖 Delegating to Google Jules AI Agent...")
-	resp, err := jules.CallJules(anomaly)
+	// Delegate to Jules
+	log.Printf("🤖 Sending to Jules: %s/%s [%s]", a.Namespace, a.OwnerName, a.Issue)
+	resp, err := jules.CallJules(a)
 	if err != nil {
 		log.Printf("❌ Jules error: %v", err)
 		return
@@ -85,7 +83,6 @@ func handleAnomaly(anomaly types.Anomaly, logFetcher *logfetcher.Fetcher) {
 		log.Printf("✅ Jules created PR: %s", resp.PRURL)
 		log.Printf("   Fix: %s", resp.Fix)
 	} else {
-		log.Printf("⚠️ Jules completed but no PR was created")
-		log.Printf("   Result: %s", resp.Fix)
+		log.Printf("⚠️ Jules completed (session %s) but no PR created", resp.SessionID)
 	}
 }
