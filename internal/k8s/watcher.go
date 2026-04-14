@@ -24,15 +24,10 @@ var (
 	dedupWindow  = 30 * time.Minute
 )
 
-// ignoredNamespaces are system namespaces we should never try to fix.
-var ignoredNamespaces = map[string]bool{
-	"kube-system":     true,
-	"kube-public":     true,
-	"kube-node-lease": true,
-	"argocd":          true,
-	"ingress-nginx":   true,
-	"cert-manager":    true,
-	"monitoring":      true,
+// watchedNamespaces are the ONLY namespaces we monitor.
+// Everything else (argocd, kube-system, etc.) is ignored automatically.
+var watchedNamespaces = map[string]bool{
+	"default": true,
 }
 
 func isDuplicate(key string) bool {
@@ -106,8 +101,8 @@ func watchLoop(ctx context.Context, clientset *kubernetes.Clientset, ch chan<- t
 }
 
 func checkPod(pod *v1.Pod, ch chan<- types.Anomaly) {
-	// Skip system namespaces — only watch user workloads
-	if ignoredNamespaces[pod.Namespace] {
+	// ALLOWLIST approach: only watch namespaces we explicitly manage
+	if !watchedNamespaces[pod.Namespace] {
 		return
 	}
 
@@ -116,6 +111,11 @@ func checkPod(pod *v1.Pod, ch chan<- types.Anomaly) {
 		if owner.Name == "self-healing" {
 			return
 		}
+	}
+
+	// Only watch pods labeled for self-healing testing
+	if pod.Labels["purpose"] != "self-healing-test" {
+		return
 	}
 
 	for _, c := range pod.Status.ContainerStatuses {

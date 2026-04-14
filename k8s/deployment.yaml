@@ -20,8 +20,8 @@ spec:
       serviceAccountName: self-healing-sa
       containers:
         - name: analyzer
-          image: ghcr.io/bishal7679/self-healing-infra:latest  # Update with your image
-          imagePullPolicy: Always
+          image: ghcr.io/bishal7679/self-healing-infra:v2
+          imagePullPolicy: Never
           resources:
             requests:
               cpu: 10m
